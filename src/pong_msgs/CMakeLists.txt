@@ -15,8 +15,14 @@ find_package(std_msgs REQUIRED)
 set(msg_files
   "msg/BallPosition.msg"
 )
+
+set(srv_files
+  "srv/StickPosition.srv"
+)
+
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
+  ${srv_files}
   DEPENDENCIES builtin_interfaces std_msgs
 )
 

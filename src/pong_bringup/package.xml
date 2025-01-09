@@ -1,17 +1,16 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>pong_node</name>
+  <name>pong_bringup</name>
   <version>1.0.0</version>
-  <description>Emulates pong game with controller and ball motion </description>
+  <description>Bringup nodes for pong game</description>
   <maintainer email="ari.kupferberg@gmail.com">ari</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>rclcpp</depend>
-  <depend>pong_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>tf2_ros</depend>
+  <depend>pong_controller</depend>
+  <depend>pong_ball</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

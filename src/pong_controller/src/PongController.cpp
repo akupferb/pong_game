@@ -2,6 +2,7 @@
 #include <std_msgs/msg/float32.hpp>
 
 #include "pong_msgs/msg/ball_position.hpp"
+#include "pong_msgs/srv/stick_position.hpp"
 
 using namespace std::placeholders;
 
@@ -10,14 +11,14 @@ namespace pong
 	class PongController : public rclcpp::Node
 	{
 	public:
-		PongController(const rclcpp::NodeOptions &) : Node("pong_controller")
+		PongController() : Node("pong_controller")
 		{
 			RCLCPP_INFO(get_logger(), "Created the PongController Node.");
 			init();
 
 			stickAccelerationPublisher_ = create_publisher<std_msgs::msg::Float32>("/stick_acc",rclcpp::SystemDefaultsQoS());
-			ballPositionSubscriber_ = create_subscription<pong_msgs::msg::BallPosition>(
-				"/ball_position", 10, std::bind(&PongController::topicCallback, this, _1));
+			ballPositionSubscriber_ = create_subscription<pong_msgs::msg::BallPosition>("/ball_position", 10, std::bind(&PongController::topicCallback, this, _1));
+			stickPosService_ = create_service<pong_msgs::srv::StickPosition>("/stick_pos", std::bind(&PongController::stickPosServiceResponse, this, _1, _2));
 		}
 
 	private:
@@ -37,6 +38,13 @@ namespace pong
 		{
 			auto& clk = *this->get_clock();
 			RCLCPP_INFO_THROTTLE(this->get_logger(), clk, 1000, "ball pos: [%d,%d]", msg.x, msg.y);
+
+			if(msg.velocity_x > 0) // Ball is moving away from stick
+			{
+				previousTime_ = now();
+				return;
+			}
+
 			double ballEndYPos = calculateBallEndPointY(msg);
 			RCLCPP_INFO_ONCE(this->get_logger(), "ball speeds = [%.1f,%.1f]", msg.velocity_x,msg.velocity_y);
 			RCLCPP_INFO_ONCE(this->get_logger(), "ball endpoint: %1f", ballEndYPos);
@@ -76,13 +84,18 @@ namespace pong
 			// Check if ball will rebound off upper/lower wall before reaching the paddle lane
 			while(ballEndYPos < 0 || ballEndYPos > windowSizeV_) // ball will rebound first
 			{
-				RCLCPP_WARN_ONCE(this->get_logger(), "ball rebounds");
 				int reboundPointY = (ball.velocity_y > 0 ? windowSizeV_ : 0);
 				double timeToRebound = (reboundPointY - ball.y) / ball.velocity_y;
 				// Now calculate actual ball Y position after rebound (Y velocity inverted)
 				ballEndYPos = reboundPointY + (-1*ball.velocity_y) * (timeToPaddleLane - timeToRebound);
 			}
 			return ballEndYPos;
+		}
+
+		void stickPosServiceResponse(const pong_msgs::srv::StickPosition::Request::SharedPtr, pong_msgs::srv::StickPosition::Response::SharedPtr response)
+		{
+			response->set__y_min_stick_pos(stickCenterPos_ - stickLength_ / 2);
+			response->set__y_max_stick_pos(stickCenterPos_ + stickLength_ / 2);
 		}
 
 		int windowSizeV_;
@@ -96,14 +109,6 @@ namespace pong
 
 		rclcpp::Publisher<std_msgs::msg::Float32>::SharedPtr stickAccelerationPublisher_;
 		rclcpp::Subscription<pong_msgs::msg::BallPosition>::SharedPtr ballPositionSubscriber_;
+		rclcpp::Service<pong_msgs::srv::StickPosition>::SharedPtr stickPosService_;
 	};
-}
-
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  rclcpp::NodeOptions node_options;
-  rclcpp::spin(std::make_shared<pong::PongController>(node_options));
-  rclcpp::shutdown();
-  return 0;
 }

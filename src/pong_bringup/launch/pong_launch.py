@@ -11,7 +11,7 @@ def generate_launch_description():
     return LaunchDescription([
 
         Node(
-            package='pong_node',
+            package='pong_controller',
             executable='pong_controller',
             name='pong_controller',
             parameters=[],
@@ -19,7 +19,7 @@ def generate_launch_description():
             ),
 
         Node(
-            package='pong_node',
+            package='pong_ball',
             executable='pong_ball',
             name='pong_ball',
             parameters=[],
